@@ -1,7 +1,7 @@
 import socket
 import struct
 
-class udpsend():
+class UDPSender():
     def __init__(self):
         # 送信元情報
         srcIP = "localhost"
@@ -13,11 +13,14 @@ class udpsend():
         dstPort = 7007
         self.dstAddr = (dstIP, dstPort)
 
-        # # ソケット作成
+        # ソケット作成
         self.udpClientSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        # self.udpClientSock.bind(self.srcAddr)
+        self.udpClientSock.bind(self.srcAddr)
 
-    def send(self, data):
+    def send_controller_data(self, axes, buttons):
+        # 軸6個 + ボタン16個
+        # 'f'->float, 'B'->unsigned charでpack
+        data = struct.pack('6f16B', *axes[:6], *buttons[:16])
         self.udpClientSock.sendto(data, self.dstAddr)
 
     def close(self):
