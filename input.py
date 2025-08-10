@@ -2,23 +2,33 @@ import pygame
 from pygame.locals import *
 import sys
 from typing import Tuple
+from pygame import gfxdraw
 
-WIDTH  = 400
-HEIGHT = 300
+WIDTH  = 660
+HEIGHT = 440
 
-L_CENTER = (100, 150)
-R_CENTER = (300, 150)
+L_CENTER = (173, 155)
+R_CENTER = (403, 227)
 
 BACKGROUND = (230, 230, 230)
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
-GLAY = (192, 192, 192)
+LIGHT_GLAY = (192, 192, 192)
+DARK_GLAY = (96, 96, 96)
+RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 
+CONTROLLER_IMG_PATH = './img/test.png'
 
-def init() -> None:
-    pygame.init()
-    pygame.joystick.init()
+COORD_A = (515, 139)
+COORD_B = (472, 177)
+COORD_X = (472, 100)
+COORD_Y = (428, 139)
+
+CENTER_A = (522, 153)
+CENTER_B = (478, 191)
+CENTER_X = (478, 114)
+CENTER_Y = (435, 153)
 
 
 # 単純移動平均
@@ -32,8 +42,8 @@ def moving_average(axis_x: float, axis_y: float, history_x: list, history_y: lis
     if len(history_y) < window_size:
         return 0, 0
     
-    mean_x = sum(history_x) / window_size
-    mean_y = sum(history_y) / window_size
+    avg_x = sum(history_x) / window_size
+    avg_y = sum(history_y) / window_size
     history_x.pop(0)
     history_y.pop(0)
 
@@ -41,51 +51,90 @@ def moving_average(axis_x: float, axis_y: float, history_x: list, history_y: lis
     if axis_x**2 + axis_y**2 <= deadzone:
         return 0, 0
     
-    return int(25*mean_x), int(25*mean_y)
+    return int(25*avg_x), int(25*avg_y)
 
 
-def draw_stick(screen, center_coord: tuple, offset: tuple) -> None:
+def draw_stick(screen, center_coord: tuple, offset: tuple, press: bool) -> None:
     x, y = center_coord
     dx, dy = offset
-    pygame.draw.circle(screen, GLAY, center_coord, 55, 1)
-    pygame.draw.circle(screen, GLAY, (x+dx, y+dy), 30, 2)
-    pygame.draw.circle(screen, BLACK, (x+dx, y+dy), 30)
-    pygame.draw.circle(screen, GLAY, (x+dx*1.15, y+dy*1.15), 24, 1)
+    # アンチエイリアシングして描画
+    gfxdraw.aacircle(screen, x+dx, y+dy, 31, BLACK)
+
+    if press:
+        pygame.draw.circle(screen, RED, (x+dx, y+dy), 30)
+    else:
+        pygame.draw.circle(screen, WHITE, (x+dx, y+dy), 30)
+    gfxdraw.aacircle(screen, int(x+dx*1.2), int(y+dy*1.2), 24, BLACK)
 
 
 def main() -> None:
-    init()
+    pygame.init()
+    pygame.joystick.init()
     controller = pygame.joystick.Joystick(0)
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     clock = pygame.time.Clock()
+    controller_img = pygame.image.load(CONTROLLER_IMG_PATH)
     history_lx, history_ly = [], []
     history_rx, history_ry = [], []
+    running = True
 
-    while (True):
+    font = pygame.font.SysFont('meiryo', 20)
+    textA = font.render('A', True, WHITE)
+    textB = font.render('B', True, WHITE)
+    textX = font.render('X', True, WHITE)
+    textY = font.render('Y', True, WHITE)
+
+    while (running):
         for event in pygame.event.get():
             if event.type == QUIT:
-                pygame.quit()
-                sys.exit()
+                running = False
+            if event.type == MOUSEBUTTONDOWN:
+                mouse_pos = pygame.mouse.get_pos()
+                print(f'pos = {mouse_pos}')
+
+        # コントローラ情報の取得
+        axes = [controller.get_axis(i) for i in range(controller.get_numaxes())]
+        buttons = [controller.get_button(i) for i in range(controller.get_numbuttons())]
 
         # スティック位置を取得
-        Lstick_offset = moving_average(controller.get_axis(0), controller.get_axis(1), history_lx, history_ly)
-        Rstick_offset = moving_average(controller.get_axis(2), controller.get_axis(3), history_rx, history_ry)
+        Lstick_offset = moving_average(axes[0], axes[1], history_lx, history_ly)
+        Rstick_offset = moving_average(axes[2], axes[3], history_rx, history_ry)
 
         # 生データ(Lスティック)
         rawL = controller.get_axis(0), controller.get_axis(1)
         rawR = controller.get_axis(2), controller.get_axis(3)
-        print(f'{rawL[0]:.4f} {rawL[1]:.4f} {rawR[0]:.4f} {rawR[1]:.4f}')
+        # print(f'{rawL[0]:.4f} {rawL[1]:.4f} {rawR[0]:.4f} {rawR[1]:.4f}')
 
-        screen.fill(WHITE)
+        screen.fill(GREEN)
+        screen.blit(controller_img, (0, 0))
 
-        # スティック描画(簡易モデル)
-        draw_stick(screen, L_CENTER, Lstick_offset)
-        draw_stick(screen, R_CENTER, Rstick_offset)
+        # ボタンの押下状況に応じて色を変化
+        ## ABXY
+        if buttons[0]:
+            pygame.draw.circle(screen, RED, CENTER_A, 20)
+        if buttons[1]:
+            pygame.draw.circle(screen, RED, CENTER_B, 20)
+        if buttons[2]:
+            pygame.draw.circle(screen, RED, CENTER_X, 20)
+        if buttons[3]:
+            pygame.draw.circle(screen, RED, CENTER_Y, 20)
+
+        
+        screen.blit(textA, COORD_A)
+        screen.blit(textB, COORD_B)
+        screen.blit(textY, COORD_Y)
+        screen.blit(textX, COORD_X)
+
+        # スティック描画
+        draw_stick(screen, L_CENTER, Lstick_offset, buttons[7])
+        draw_stick(screen, R_CENTER, Rstick_offset, buttons[8])
 
         # pygameのイベント更新(これがないとスティック位置が更新されない)
         pygame.event.pump()
-        pygame.display.update()
-        clock.tick(60)
+        pygame.display.flip()
+        # pygame.display.update()
+        clock.tick(120)
+    pygame.quit()
 
 if __name__ == '__main__':
     main()
