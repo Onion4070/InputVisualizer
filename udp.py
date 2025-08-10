@@ -2,14 +2,33 @@ import socket
 import struct
 import threading
 
+
+class UDPSender():
+    def __init__(self, dstIP='localhost', dstPort=7007):
+        # 宛先情報
+        self.dstAddr = (dstIP, dstPort)
+
+        # ソケット作成
+        self.udpClientSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    def send_controller_data(self, axes, buttons):
+        # 軸6個 + ボタン16個
+        # 'f'->float, 'B'->unsigned charでpack
+        data = struct.pack('6f16B', *axes[:6], *buttons[:16])
+        self.udpClientSock.sendto(data, self.dstAddr)
+
+    def close(self):
+        self.udpClientSock.close()
+
+
 class UDPReceiver:
-    def __init__(self):
-        srcIP = "localhost"
-        srcPort = 7007
+    def __init__(self, srcIP='localhost', srcPort=7007):
         self.srcAddr = (srcIP, srcPort)
 
         self.BUFSIZE = 1024
         self.udpServerSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+        # ソケット作成
         self.udpServerSock.bind(self.srcAddr)
         self.udpServerSock.settimeout(0.5)
 
@@ -40,17 +59,17 @@ class UDPReceiver:
         self.AXIS_LY = 0.0
         self.AXIS_RX = 0.0
         self.AXIS_RY = 0.0
-        self.ZL = 0.0
-        self.ZR = 0.0
+        self.ZL = 0
+        self.ZR = 0
 
     def receive_loop(self):
         while self.running:
             try:
                 data, addr = self.udpServerSock.recvfrom(self.BUFSIZE)
-                unpacked = struct.unpack('6f16B', data)
+                unpacked = struct.unpack('4f16B', data)
                 
-                axes = unpacked[0:6]
-                buttons = unpacked[6:22]
+                axes = unpacked[0:4]
+                buttons = unpacked[4:18]
 
                 # ボタン
                 self.A = buttons[0]

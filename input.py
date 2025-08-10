@@ -73,7 +73,8 @@ def main() -> None:
 
         # 生データ(Lスティック)
         rawL = controller.get_axis(0), controller.get_axis(1)
-        print(rawL)
+        rawR = controller.get_axis(2), controller.get_axis(3)
+        print(f'{rawL[0]:.4f} {rawL[1]:.4f} {rawR[0]:.4f} {rawR[1]:.4f}')
 
         screen.fill(WHITE)
 

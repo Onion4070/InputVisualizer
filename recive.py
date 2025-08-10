@@ -1,6 +1,6 @@
-import udpreceive
+import udp
 
-controller = udpreceive.UDPReceiver()
+controller = udp.UDPReceiver(srcIP='192.168.0.27', srcPort=7007)
 controller.start()
 
 while True:

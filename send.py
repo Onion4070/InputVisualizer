@@ -1,11 +1,11 @@
 import pygame
-import udpsend
+import udp
 
 pygame.init()
 pygame.joystick.init()
 controller = pygame.joystick.Joystick(0)
 clock = pygame.time.Clock()
-udp = udpsend.UDPSender()
+udp = udp.UDPSender()
 
 try:
     while True:
