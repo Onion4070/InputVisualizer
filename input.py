@@ -1,6 +1,6 @@
 import pygame
 from pygame.locals import *
-import sys
+import platform
 from typing import Tuple
 from pygame import gfxdraw
 
@@ -30,6 +30,8 @@ CENTER_B = (478, 191)
 CENTER_X = (478, 114)
 CENTER_Y = (435, 153)
 
+os_name = platform.system()
+
 
 # 単純移動平均
 def moving_average(axis_x: float, axis_y: float, history_x: list, history_y: list) -> Tuple[int, int]:
@@ -58,12 +60,16 @@ def draw_stick(screen, center_coord: tuple, offset: tuple, press: bool) -> None:
     x, y = center_coord
     dx, dy = offset
     # アンチエイリアシングして描画
+    ## スティック縁線
     gfxdraw.aacircle(screen, x+dx, y+dy, 31, BLACK)
 
+    ## スティック
     if press:
         pygame.draw.circle(screen, RED, (x+dx, y+dy), 30)
     else:
         pygame.draw.circle(screen, WHITE, (x+dx, y+dy), 30)
+
+    ## スティック内側の溝
     gfxdraw.aacircle(screen, int(x+dx*1.2), int(y+dy*1.2), 24, BLACK)
 
 
@@ -78,6 +84,7 @@ def main() -> None:
     history_rx, history_ry = [], []
     running = True
 
+    # フォント, テキスト設定
     font = pygame.font.SysFont('meiryo', 20)
     textA = font.render('A', True, WHITE)
     textB = font.render('B', True, WHITE)
@@ -88,6 +95,8 @@ def main() -> None:
         for event in pygame.event.get():
             if event.type == QUIT:
                 running = False
+            
+            # マウス座標取得(開発用)
             if event.type == MOUSEBUTTONDOWN:
                 mouse_pos = pygame.mouse.get_pos()
                 print(f'pos = {mouse_pos}')
@@ -119,7 +128,6 @@ def main() -> None:
         if buttons[3]:
             pygame.draw.circle(screen, RED, CENTER_Y, 20)
 
-        
         screen.blit(textA, COORD_A)
         screen.blit(textB, COORD_B)
         screen.blit(textY, COORD_Y)
