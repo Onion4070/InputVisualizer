@@ -13,22 +13,23 @@ R_CENTER = (403, 227)
 BACKGROUND = (230, 230, 230)
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
-LIGHT_GLAY = (192, 192, 192)
-DARK_GLAY = (96, 96, 96)
+OFF_WHITE = (238, 238, 238)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 
 CONTROLLER_IMG_PATH = './img/test.png'
+L_IMG_PATH = './img/L.png'
+R_IMG_PATH = './img/R.png'
 
 COORD_A = (515, 139)
 COORD_B = (472, 177)
 COORD_X = (472, 100)
 COORD_Y = (428, 139)
 
-CENTER_A = (522, 153)
+CENTER_A = (521, 153)
 CENTER_B = (478, 191)
-CENTER_X = (478, 114)
-CENTER_Y = (435, 153)
+CENTER_X = (478, 115)
+CENTER_Y = (434, 153)
 
 os_name = platform.system()
 
@@ -52,7 +53,6 @@ def moving_average(axis_x: float, axis_y: float, history_x: list, history_y: lis
     # 円形デッドゾーン
     if axis_x**2 + axis_y**2 <= deadzone:
         return 0, 0
-    
     return int(25*avg_x), int(25*avg_y)
 
 
@@ -65,12 +65,21 @@ def draw_stick(screen, center_coord: tuple, offset: tuple, press: bool) -> None:
 
     ## スティック
     if press:
-        pygame.draw.circle(screen, RED, (x+dx, y+dy), 30)
+        draw_filled_aacircle(screen, (x+dx, y+dy), 30, RED)
     else:
-        pygame.draw.circle(screen, WHITE, (x+dx, y+dy), 30)
+        draw_filled_aacircle(screen, (x+dx, y+dy), 30, OFF_WHITE)
+
 
     ## スティック内側の溝
     gfxdraw.aacircle(screen, int(x+dx*1.2), int(y+dy*1.2), 24, BLACK)
+
+
+def draw_filled_aacircle(screen, center_coord: tuple, radius: int, ColorValue: tuple) -> None:
+    x = center_coord[0]
+    y = center_coord[1]
+
+    gfxdraw.filled_circle(screen, x, y, radius, ColorValue)
+    gfxdraw.aacircle(screen, x, y, radius, ColorValue)
 
 
 def main() -> None:
@@ -79,7 +88,10 @@ def main() -> None:
     controller = pygame.joystick.Joystick(0)
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     clock = pygame.time.Clock()
-    controller_img = pygame.image.load(CONTROLLER_IMG_PATH)
+    controller_img = pygame.image.load(CONTROLLER_IMG_PATH).convert_alpha()
+    l_img = pygame.image.load(L_IMG_PATH).convert_alpha()
+    r_img = pygame.image.load(R_IMG_PATH).convert_alpha()
+
     history_lx, history_ly = [], []
     history_rx, history_ry = [], []
     running = True
@@ -109,7 +121,7 @@ def main() -> None:
         Lstick_offset = moving_average(axes[0], axes[1], history_lx, history_ly)
         Rstick_offset = moving_average(axes[2], axes[3], history_rx, history_ry)
 
-        # 生データ(Lスティック)
+        # 生データ(LRスティック)
         rawL = controller.get_axis(0), controller.get_axis(1)
         rawR = controller.get_axis(2), controller.get_axis(3)
         # print(f'{rawL[0]:.4f} {rawL[1]:.4f} {rawR[0]:.4f} {rawR[1]:.4f}')
@@ -120,22 +132,35 @@ def main() -> None:
         # ボタンの押下状況に応じて色を変化
         ## ABXY
         if buttons[0]:
-            pygame.draw.circle(screen, RED, CENTER_A, 20)
+            draw_filled_aacircle(screen, CENTER_A, 20, RED)
         if buttons[1]:
-            pygame.draw.circle(screen, RED, CENTER_B, 20)
+            draw_filled_aacircle(screen, CENTER_B, 20, RED)
         if buttons[2]:
-            pygame.draw.circle(screen, RED, CENTER_X, 20)
+            draw_filled_aacircle(screen, CENTER_X, 20, RED)
         if buttons[3]:
-            pygame.draw.circle(screen, RED, CENTER_Y, 20)
+            draw_filled_aacircle(screen, CENTER_Y, 20, RED)
+
+        ## -HOME+
+
+        # スティック描画
+        ## LD, RD
+        draw_stick(screen, L_CENTER, Lstick_offset, buttons[7])
+        draw_stick(screen, R_CENTER, Rstick_offset, buttons[8])
+
+        ## LR
+        if buttons[9]:
+            screen.blit(l_img, (0, 0))
+
+        if buttons[10]:
+            screen.blit(r_img, (0, 0))
+
 
         screen.blit(textA, COORD_A)
         screen.blit(textB, COORD_B)
         screen.blit(textY, COORD_Y)
         screen.blit(textX, COORD_X)
 
-        # スティック描画
-        draw_stick(screen, L_CENTER, Lstick_offset, buttons[7])
-        draw_stick(screen, R_CENTER, Rstick_offset, buttons[8])
+
 
         # pygameのイベント更新(これがないとスティック位置が更新されない)
         pygame.event.pump()
