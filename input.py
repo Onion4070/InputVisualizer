@@ -3,6 +3,7 @@ from pygame.locals import *
 import platform
 from typing import Tuple
 from pygame import gfxdraw
+import sys
 
 WIDTH  = 660
 HEIGHT = 440
@@ -69,7 +70,6 @@ def draw_stick(screen, center_coord: tuple, offset: tuple, press: bool) -> None:
     else:
         draw_filled_aacircle(screen, (x+dx, y+dy), 30, OFF_WHITE)
 
-
     ## スティック内側の溝
     gfxdraw.aacircle(screen, int(x+dx*1.2), int(y+dy*1.2), 24, BLACK)
 
@@ -85,7 +85,11 @@ def draw_filled_aacircle(screen, center_coord: tuple, radius: int, ColorValue: t
 def main() -> None:
     pygame.init()
     pygame.joystick.init()
-    controller = pygame.joystick.Joystick(0)
+    try:
+        controller = pygame.joystick.Joystick(0)
+    except:
+        print('Controller is not connected')
+        sys.exit()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     clock = pygame.time.Clock()
     controller_img = pygame.image.load(CONTROLLER_IMG_PATH).convert_alpha()
@@ -150,7 +154,6 @@ def main() -> None:
         ## LR
         if buttons[9]:
             screen.blit(l_img, (0, 0))
-
         if buttons[10]:
             screen.blit(r_img, (0, 0))
 
@@ -159,8 +162,6 @@ def main() -> None:
         screen.blit(textB, COORD_B)
         screen.blit(textY, COORD_Y)
         screen.blit(textX, COORD_X)
-
-
 
         # pygameのイベント更新(これがないとスティック位置が更新されない)
         pygame.event.pump()
